@@ -30,6 +30,9 @@ f = np.random.uniform(1e3, 10e3)
 gain = np.random.uniform(2.0, 15.0)
 Vin = np.random.uniform(0.01, 1.0)
 
+print(f"Test input parameters:")
+print(f"VDD: {VDD:.2f} V | CL: {CL*1e9:.2f} nF | Frequency: {f/1000:.2f} kHz | Gain: {gain:.2f} V/V | Vin: {Vin:.2f} V")
+
 x_scaler, y_scaler = joblib.load("x_scaler.pkl"), joblib.load("y_scaler.pkl")
 X_test = x_scaler.transform(np.log10(np.array([[VDD, CL, f, gain, Vin]])))
 X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
