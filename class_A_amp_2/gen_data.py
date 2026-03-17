@@ -63,6 +63,8 @@ for i in range(n_datapoints):
 runner.wait_completion()
 np.save(data_file, data)
 
+os.system("rm ./circuit_sim/temp_files/*")
+
 # Make VDD input
 # Add Gain, frequency, and CL as input
 # Replace C2 and RL with CL connected to Vo and gnd

@@ -12,10 +12,11 @@ import joblib
 import os
 os.environ["WINEDEBUG"] = "-all"
 
-# Load dataset and MinMaxScalers
+# Set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
+# Load dataset and MinMaxScalers
 model = ClassAModel().to(device)
 model.load_state_dict(torch.load(f"class_a_model_2_{n_datapoints}.pth"))
 model.eval()
