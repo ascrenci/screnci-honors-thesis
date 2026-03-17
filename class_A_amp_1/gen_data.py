@@ -52,3 +52,5 @@ for i in range(n_datapoints):
     runner.run(net, callback=processing_data, callback_args=(i, comps["RL"], comps["VDD"], comps["RD"], comps["R1"]))
 runner.wait_completion()
 np.save(data_file, data)
+
+os.system("rm ./circuit_sim/temp_files/*")
