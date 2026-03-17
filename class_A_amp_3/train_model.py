@@ -139,9 +139,9 @@ history = train_model(
     optimizer,
     criterion,
     device,
-    epochs=200,
+    epochs=300,
     patience=30,
     plot=True
 )
 
-torch.save(model.state_dict(), f"class_a_model_2_{n_datapoints}.pth")
+torch.save(model.state_dict(), f"class_a_model_3_{n_datapoints}.pth")

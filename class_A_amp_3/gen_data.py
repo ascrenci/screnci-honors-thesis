@@ -9,18 +9,20 @@ import os
 from config import n_datapoints, asc_path, data_file
 os.environ["WINEDEBUG"] = "-all"
 
-# X = [VDD, CL, frequency, gain]
+# X = [VDD, CL, frequency, gain, Vin]
 # y = [R1, RD, Vto, Kp]
 
 os.system("rm ./circuit_sim/temp_files/*")
-data = np.zeros((n_datapoints, 8)) 
+data = np.zeros((n_datapoints, 9)) 
 
 
 def processing_data(raw_file, log_file, i, VDD, CL, f, Vin, R1, RD, Vto, Kp):
     global data
     read_log = LTSpiceLogReader(log_file)
     peakvo = read_log.get_measure_value("peakvo")
-    data[i] = [VDD, CL, f, peakvo/Vin, R1, RD, Vto, Kp]
+    # gain in V/V, not dB
+    gain = peakvo/Vin
+    data[i] = [VDD, CL, f, gain, Vin, R1, RD, Vto, Kp]
     print(f"Data point {i}/{n_datapoints} collected.")
 
 net = lt.AscEditor(asc_path)

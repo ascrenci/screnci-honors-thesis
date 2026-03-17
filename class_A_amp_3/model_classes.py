@@ -9,8 +9,8 @@ class ClassADataset(Dataset):
     def __init__(self, data_file):
         data = np.log10(np.load(data_file))
         
-        X = data[:, :4] # VDD, CL, frequency, gain
-        y = data[:, 4:] # R1, RD, Vto, Kp
+        X = data[:, :5] # VDD, CL, frequency, gain, Vin
+        y = data[:, 5:] # R1, RD, Vto, Kp
 
         self.xscaler = MinMaxScaler()
         self.yscaler = MinMaxScaler()
@@ -30,7 +30,7 @@ class ClassADataset(Dataset):
         return self.X[idx], self.y[idx]
 
 class ClassAModel(nn.Module):
-    def __init__(self, input_dim=4, output_dim=4):
+    def __init__(self, input_dim=5, output_dim=4):
         super().__init__()
 
         self.fc = nn.Sequential(
