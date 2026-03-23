@@ -6,15 +6,14 @@ from PyLTSpice.log.ltsteps import LTSpiceLogReader
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from config import n_datapoints, asc_path, data_file
+from config import n_datapoints, asc_path, temp_path, data_file
 os.environ["WINEDEBUG"] = "-all"
 
 # X = [VDD, CL, frequency, gain, Vin]
 # y = [R1, RD, Vto, Kp]
 
-os.system("rm ./circuit_sim/temp_files/*")
+os.system(f"rm {temp_path}*")
 data = np.zeros((n_datapoints, 9)) 
-
 
 def processing_data(raw_file, log_file, i, VDD, CL, f, Vin, R1, RD, Vto, Kp):
     global data
@@ -27,7 +26,7 @@ def processing_data(raw_file, log_file, i, VDD, CL, f, Vin, R1, RD, Vto, Kp):
 
 net = lt.AscEditor(asc_path)
 net.add_instruction(".save v(vo)")
-runner = SimRunner(output_folder="./circuit_sim/temp_files", simulator=LTspice, parallel_sims=10)
+runner = SimRunner(output_folder=temp_path, simulator=LTspice, parallel_sims=10)
 
 for i in range(n_datapoints):
     params = {
@@ -50,7 +49,7 @@ for i in range(n_datapoints):
 runner.wait_completion()
 np.save(data_file, data)
 
-os.system("rm ./circuit_sim/temp_files/*")
+os.system(f"rm {temp_path}*")
 
 # Add VDD, Gain, frequency, and CL as input
 # Replace C2 and RL with CL connected to Vo and gnd X

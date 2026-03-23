@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset
 import joblib
 from sklearn.preprocessing import MinMaxScaler
+from config import branch
 
 class ClassADataset(Dataset):
     def __init__(self, data_file):
@@ -17,8 +18,8 @@ class ClassADataset(Dataset):
 
         X_norm = self.xscaler.fit_transform(X)
         y_norm = self.yscaler.fit_transform(y)
-        joblib.dump(self.xscaler, "x_scaler.pkl")
-        joblib.dump(self.yscaler, "y_scaler.pkl")
+        joblib.dump(self.xscaler, f"{branch}/x_scaler.pkl")
+        joblib.dump(self.yscaler, f"{branch}/y_scaler.pkl")
 
         self.X = torch.tensor(X_norm, dtype=torch.float32)
         self.y = torch.tensor(y_norm, dtype=torch.float32)

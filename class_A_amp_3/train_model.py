@@ -8,8 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
-from config import data_file
-from config import n_datapoints
+from config import data_file, n_datapoints, branch
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
@@ -144,4 +143,4 @@ history = train_model(
     plot=True
 )
 
-torch.save(model.state_dict(), f"class_a_model_3_{n_datapoints}.pth")
+torch.save(model.state_dict(), f"{branch}/class_a_model_3_{n_datapoints}.pth")

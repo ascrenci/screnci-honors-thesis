@@ -6,8 +6,7 @@ from PyLTSpice import SimRunner, LTspice
 from PyLTSpice.log.ltsteps import LTSpiceLogReader
 import numpy as np
 from model_classes import ClassAModel
-from config import asc_path
-from config import n_datapoints
+from config import asc_path, n_datapoints, branch
 import joblib
 import os
 os.environ["WINEDEBUG"] = "-all"
@@ -18,7 +17,7 @@ print(f"Using device: {device}")
 
 # Load dataset and MinMaxScalers
 model = ClassAModel().to(device)
-model.load_state_dict(torch.load(f"class_a_model_3_{n_datapoints}.pth"))
+model.load_state_dict(torch.load(f"{branch}/class_a_model_3_{n_datapoints}.pth"))
 model.eval()
 
 # input array for testing
@@ -33,7 +32,7 @@ Vin = np.random.uniform(0.01, 1.0)
 print(f"Test input parameters:")
 print(f"VDD: {VDD:.2f} V | CL: {CL*1e9:.2f} nF | Frequency: {f/1000:.2f} kHz | Gain: {gain:.2f} V/V | Vin: {Vin:.2f} V")
 
-x_scaler, y_scaler = joblib.load("x_scaler.pkl"), joblib.load("y_scaler.pkl")
+x_scaler, y_scaler = joblib.load(f"{branch}/x_scaler.pkl"), joblib.load(f"{branch}/y_scaler.pkl")
 X_test = x_scaler.transform(np.log10(np.array([[VDD, CL, f, gain, Vin]])))
 X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
 
