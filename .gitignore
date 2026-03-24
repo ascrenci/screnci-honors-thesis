@@ -11,3 +11,8 @@ __pycache__/
 temp_files/
 *.asv
 *.txt
+*.asc
+*.pth
+*.pkl
+master/
+testing/
