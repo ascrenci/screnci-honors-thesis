@@ -1,15 +1,13 @@
 Honors_TPR.pptx
 .vscode/
-*.asc
 *.log
 *.raw
 *.db
 *.npy
 *.plt
 *.m
-*.pth
 __pycache__/
 *.png
-circuit_sim/
-*.pkl
+temp_files/
 *.asv
+*.txt

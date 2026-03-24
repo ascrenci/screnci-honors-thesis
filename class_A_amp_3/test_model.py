@@ -6,7 +6,7 @@ from PyLTSpice import SimRunner, LTspice
 from PyLTSpice.log.ltsteps import LTSpiceLogReader
 import numpy as np
 from model_classes import ClassAModel
-from config import asc_path, n_datapoints, branch
+from config import asc_path, n_datapoints, branch, temp_path
 import joblib
 import os
 os.environ["WINEDEBUG"] = "-all"
@@ -76,5 +76,5 @@ def processing_data(raw_file, log_file):
     print(f"Relative error: {rel_error:.4f}")
     print(f"Percent error: {percent_error:.2f} %")
 
-runner = SimRunner(output_folder="./circuit_sim/temp_files", simulator=LTspice)
+runner = SimRunner(output_folder=temp_path, simulator=LTspice)
 runner.run(net, callback=processing_data)
