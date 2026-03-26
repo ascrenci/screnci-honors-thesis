@@ -138,7 +138,7 @@ history = train_model(
     optimizer,
     criterion,
     device,
-    epochs=300,
+    epochs=1000,
     patience=30,
     plot=True
 )

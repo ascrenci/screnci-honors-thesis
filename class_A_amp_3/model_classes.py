@@ -10,8 +10,8 @@ class ClassADataset(Dataset):
     def __init__(self, data_file):
         data = np.log10(np.load(data_file))
         
-        X = data[:, :5] # VDD, CL, frequency, gain, Vin
-        y = data[:, 5:] # R1, RD, Vto, Kp
+        X = data[:, :5] # X = [gain, bandwidth, VDD, Vto, THD=1]
+        y = data[:, 5:] # y = [R1, RD, Kp, CL]
 
         self.xscaler = MinMaxScaler()
         self.yscaler = MinMaxScaler()
