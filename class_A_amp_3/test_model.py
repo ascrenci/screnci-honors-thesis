@@ -18,7 +18,7 @@ print(f"Using device: {device}")
 
 # Load dataset and MinMaxScalers
 model = ClassAModel().to(device)
-model.load_state_dict(torch.load(f"{branch}/class_a_model_3_{n_datapoints}.pth"))
+model.load_state_dict(torch.load(f"{branch}/class_a_model_3_{n_datapoints}.pth", map_location=device))
 model.eval()
 
 # X = [gain, bandwidth, VDD, Vto, THD=1]
