@@ -28,15 +28,16 @@ model.eval()
 gain = np.random.uniform(2.0, 15.0)
 bandwidth = np.random.uniform(100, 500)
 VDD = np.random.uniform(5.0, 20.0)
+Vin = np.random.uniform(10e-3, 500e-3)
 Vto = np.random.uniform(0.2, 1.0)
-THD = 0.5
+THD = 1
 
 
 print(f"\nTest input parameters:")
-print(f"Gain: {gain:.2f} V/V | Bandwidth: {bandwidth:.2f} Hz | VDD: {VDD:.2f} V | Vto: {Vto*1000:.2f} V | THD: {THD:.2f} %")
+print(f"Gain: {gain:.2f} V/V | Bandwidth: {bandwidth:.2f} Hz | VDD: {VDD:.2f} V | Vin: {Vin*1000:.2f} mV | Vto: {Vto*1000:.2f} V | THD: {THD:.2f} %")
 
 x_scaler, y_scaler = joblib.load(f"{branch}/x_scaler.pkl"), joblib.load(f"{branch}/y_scaler.pkl")
-X_test = x_scaler.transform(np.log10(np.array([[gain, bandwidth, VDD, Vto, THD]])))
+X_test = x_scaler.transform(np.log10(np.array([[gain, bandwidth, VDD, Vin, Vto, THD]])))
 X_test = torch.tensor(X_test, dtype=torch.float32).to(device)
 
 with torch.no_grad():
@@ -53,6 +54,7 @@ print(f"R1: {y_pred_real[0]/1000:.2f} kOhms | RD: {y_pred_real[1]/1000:.2f} kOhm
 net = lt.AscEditor(asc_path)
 # Set X data in netlist
 net.set_component_value("VDD", VDD)
+net.set_parameter("Vin", Vin)
 net.set_parameter("Vto", Vto)
 
 # Set y data in netlist
@@ -68,9 +70,9 @@ def processing_data(raw_file, log_file, analysis_mode):
         THD = float(getline(f'./{log_file}', 32)[29:-2])
         print(f"\nMeasured THD: {THD}% | Error: {abs(THD-1.0):.2f}%")
 
-    elif analysis_mode == "AC":
+    if analysis_mode == "AC":
         read_log = LTSpiceLogReader(log_file)
-        gain_measured = 10**(np.abs(read_log.get_measure_value("a0"))/20)
+        gain_measured = np.abs(read_log.get_measure_value("a0"))
         bandwidth_measured = np.abs(read_log.get_measure_value("f_c"))
         print(f"Measured Gain: {gain_measured:.2f} V/V | Measured Bandwidth: {bandwidth_measured:.2f} Hz")
         print(f"\nGain Error: {abs(gain_measured-gain):.2f} V/V | Bandwidth Error: {abs(bandwidth_measured-bandwidth):.2f} Hz")
@@ -80,6 +82,8 @@ runner = SimRunner(output_folder=temp_path, simulator=LTspice)
 
 net.add_instruction('.tran 0 11 10')
 runner.run(net, callback=processing_data, callback_args=("TRAN",))
+runner.wait_completion()
 
 net.add_instruction('.ac dec 100 10 1G')
 runner.run(net, callback=processing_data, callback_args=("AC",))
+runner.wait_completion()
