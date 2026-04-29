@@ -38,8 +38,8 @@ for i in range(n_datapoints):
     params = {
         "VDD": np.random.uniform(5.0, 20.0),
         "Vin": np.random.uniform(10e-3, 500e-3),
-        "R1": np.random.uniform(100e3, 1e6),
-        "RD": np.random.uniform(100e3, 1e6),
+        "R1": np.random.uniform(100e3, 5e6),
+        "RD": np.random.uniform(100e3, 5e6),
         "CL": np.random.uniform(1e-9, 10e-9),
         "Vto": np.random.uniform(0.2, 1.0),
         "Kp": np.random.uniform(0.01e-3, 0.2e-3)

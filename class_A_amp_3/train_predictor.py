@@ -2,15 +2,13 @@
 
 import torch
 import numpy as np
-from model_classes import ClassADataset, ClassAModel, ResBlockMLP_Surrogate, ResBlockMLP_Predictor
+from model_classes import PerformancePredictorDataset, ClassAModel, ResBlockMLP_Surrogate, ResBlockMLP_Predictor
 from torch.utils.data import random_split, DataLoader
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import random
 from config import data_file, n_datapoints, branch
-import joblib
-import torch.nn.functional as F
 
 def set_seed(seed=42):
     torch.manual_seed(seed)
@@ -22,15 +20,10 @@ def set_seed(seed=42):
 
 set_seed(33882356)
 
-def log_mse_loss(pred, target):
-    # We use log(x + 1) because scaled values are [0, 1]
-    # This prevents log(0) and keeps the curve smooth
-    return F.mse_loss(torch.log1p(pred), torch.log1p(target))
-
-def train_model(predictor, model, train_loader, val_loader, optimizer, criterion, device, epochs=100, patience=10, plot=True, w_gain=1.0, w_bw=1.0, w_thd=1.0):
+def train_model(model, train_loader, val_loader, optimizer, criterion, device, epochs=100, patience=10, plot=True):
     best_val_loss = float("inf")
     patience_counter = 0
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.6, patience=20)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.6, patience=20)
 
     # History for plotting
     history = {"train_loss": [], "val_loss": [], "lr": []}
@@ -44,27 +37,10 @@ def train_model(predictor, model, train_loader, val_loader, optimizer, criterion
 
             optimizer.zero_grad()
             y_pred = model(X_batch)
+            #y_pred = torch.clamp(y_pred, min=1e-7)
 
-            X_current = X_batch[:,2:5]
-            predictor_input = torch.cat([X_current, y_pred], dim=1)
-            predictor_output = predictor(predictor_input)
-
-
-            gain_loss = criterion(predictor_output[:, 0], X_batch[:, 0])
-            bw_loss   = criterion(predictor_output[:, 1], X_batch[:, 1])
-            thd_loss = criterion(predictor_output[:,2], X_batch[:, 5])
-
-            loss = (
-                torch.exp(-log_sigma_gain) * gain_loss + log_sigma_gain +
-                torch.exp(-log_sigma_bw)   * bw_loss   + log_sigma_bw +
-                torch.exp(-log_sigma_thd)  * thd_loss  + log_sigma_thd
-            )
-
-            #print(f"Gain loss: {gain_loss}")
-            #print(f"THD Loss: {thd_loss}")
-            #print(f"BW Loss: {bw_loss}")
-
-            #loss = criterion(y_pred, y_batch)
+            loss = criterion(y_pred, y_batch)
+            #loss = torch.mean((torch.log1p(y_pred) - torch.log1p(y_batch))**2)
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -80,22 +56,9 @@ def train_model(predictor, model, train_loader, val_loader, optimizer, criterion
             for X_batch, y_batch in val_loader:
                 X_batch, y_batch = X_batch.to(device), y_batch.to(device)
                 y_pred = model(X_batch)
-
-                X_current = X_batch[:,2:5]
-                predictor_input = torch.cat([X_current, y_pred], dim=1)
-                predictor_output = predictor(predictor_input)
-
-                gain_loss = criterion(predictor_output[:, 0], X_batch[:, 0])
-                bw_loss   = criterion(predictor_output[:, 1], X_batch[:, 1])
-                thd_loss = criterion(predictor_output[:,2], X_batch[:, 5])
-
-                current_val_loss = (
-                    torch.exp(-log_sigma_gain) * gain_loss + log_sigma_gain +
-                    torch.exp(-log_sigma_bw)   * bw_loss   + log_sigma_bw +
-                    torch.exp(-log_sigma_thd)  * thd_loss  + log_sigma_thd
-                )
-
-                val_loss += current_val_loss.item()
+                #y_pred = torch.clamp(y_pred, 1e-7)
+                #val_loss += torch.mean((torch.log1p(y_pred) - torch.log1p(y_batch))**2).item()
+                val_loss += criterion(y_pred, y_batch)
 
         val_loss /= len(val_loader)
 
@@ -136,7 +99,7 @@ def train_model(predictor, model, train_loader, val_loader, optimizer, criterion
         plt.title("Training & Validation Loss")
         plt.legend()
         plt.grid(True)
-        plt.savefig('loss_curve.png')
+        plt.savefig('predictor_loss_curve.png')
 
         plt.figure(figsize=(8, 3))
         plt.plot(history["lr"])
@@ -144,22 +107,15 @@ def train_model(predictor, model, train_loader, val_loader, optimizer, criterion
         plt.ylabel("Learning Rate")
         plt.title("LR Schedule")
         plt.grid(True)
-        plt.savefig('lr_schedule.png')
+        plt.savefig('predictor_lr_schedule.png')
 
     return history
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
-#predictor = ResBlockMLP_Surrogate(7,3, 64).to(device)
-predictor = ClassAModel(7,3,64).to(device)
-predictor.load_state_dict(torch.load(f"{branch}/PerformancePredictor_{n_datapoints}.pth", map_location=device))
-for param in predictor.parameters():
-    param.requires_grad = False
-predictor.eval()
-
 # Dataset splitting
-full_dataset = ClassADataset(data_file)
+full_dataset = PerformancePredictorDataset(data_file)
 
 total_len = len(full_dataset)
 train_len = int(0.7 * total_len)
@@ -175,18 +131,13 @@ train_loader = DataLoader(train_dataset, batch_size=bs, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=bs, shuffle=False)
 
 # Model, criterion, optimizer
-model = ClassAModel(6,4, 256).to(device)
-#model = ResBlockMLP_Predictor(6,4,128).to(device)
-criterion = nn.MSELoss()
-
-log_sigma_gain = torch.nn.Parameter(torch.zeros(1, device=device))
-log_sigma_bw = torch.nn.Parameter(torch.zeros(1, device=device))
-log_sigma_thd = torch.nn.Parameter(torch.zeros(1, device=device))
-optimizer = optim.AdamW(list(model.parameters()) + [log_sigma_gain, log_sigma_bw, log_sigma_thd], lr=1e-4, weight_decay=1e-6)
+#model = ResBlockMLP_Surrogate(7,3, 64).to(device)
+model = ClassAModel(7, 3, 64).to(device)
+criterion = nn.L1Loss()
+optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
 # Train model
 history = train_model(
-    predictor,
     model,
     train_loader,
     val_loader,
@@ -194,11 +145,8 @@ history = train_model(
     criterion,
     device,
     epochs=1000,
-    patience=100,
-    plot=True,
-    w_gain=1.0,
-    w_bw=1.0,
-    w_thd=1.0
+    patience=30,
+    plot=False
 )
 
-torch.save(model.state_dict(), f"{branch}/class_a_model_3_{n_datapoints}.pth")
+torch.save(model.state_dict(), f"{branch}/PerformancePredictor_{n_datapoints}.pth")
